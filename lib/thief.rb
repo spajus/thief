@@ -7,8 +7,13 @@ module Thief
     def install
       gemfile = resolve_gemfile
       gems = parse_gemfile(gemfile)
-      Parallel.map(gems, in_processes: cpu_count, progress: 'Getting gems') do |gem|
-        install_gem(gem)
+      if gems.size > 0
+        puts "Getting #{gems.size} missing gems"
+        Parallel.map(gems, in_processes: cpu_count, progress: 'Getting missing gems') do |gem|
+          install_gem(gem)
+        end
+      else
+        puts 'You have all the gems you need'
       end
     end
 
@@ -22,37 +27,14 @@ module Thief
     end
 
     def parse_gemfile(gemfile)
+      missing = `bundle check --gemfile=#{gemfile}`
+      gems = missing.split("\n").map(&:strip).select { |l| l.start_with?('*') }
       result = []
-      line_num = 0
-      File.open(gemfile).each do |line|
-        line_num += 1
-        parse_line(result, line, line_num)
+      gems.map do |gem|
+        gem, version = gem.gsub('* ', '').split(' (')
+        result << { gem: gem, version: version.gsub(')', '') }
       end
       result
-    end
-
-    def parse_line(result, line, num)
-      line = line.strip
-      if line.include?(':path =>') || line.include?('path: ')
-        puts "WARNING: Skipping local: #{line}"
-        return
-      end
-      if line.include?('#')
-        line, _ = line.split('#')
-      end
-      if line.start_with?('gem')
-        gem, version = line.gsub(/['"]/, '').split(',')
-        gem_def = { gem: gem.gsub(/^gem\s+/, '').strip }
-        if version && version.include?('require')
-          version.gsub!(/:?require.+/, '').strip
-        end
-        if version && version.strip.length > 0
-          gem_def[:version] = version.strip
-        end
-        result << gem_def
-      end
-    rescue => e
-      puts "WARNING: Could not parse line: #{num}: #{line}: #{e}"
     end
 
     def resolve_gemfile
@@ -68,10 +50,9 @@ module Thief
     end
 
     def check_gemfile(gemfile)
-      unless File.exist?(gemfile)
-        puts 'Run thief in a directory that contains a Gemfile'
-        exit 1
-      end
+      return if File.exist?(gemfile)
+      puts 'Run thief in a directory that contains a Gemfile'
+      exit 1
     end
 
     def cpu_count

@@ -3,11 +3,8 @@
 Thief is a hack and slash alternative for installing Gemfile contents as fast as possible. It
 operates in following way:
 
-  1. Parses the `Gemfile`, ignoring `Gemfile.lock`, of course.
-  2. Runs `gem install` for each gem using as many parallel processes as you have CPUs.
-
-It leaves a mess, but does the majority of work that Bundler is notoriously slow at. Run Bundler
-afterwards to have a clean finish.
+  1. Runs `bundle check` which usually returns list of missing gems with versions quickly.
+  2. Runs optimized `gem install` for each gem using as many parallel processes as you have CPUs.
 
 ## Installation
 
@@ -19,7 +16,7 @@ Install using the command line:
 
 Recommended usage for CI builds or production installs is in combination with [Bundler](http://bundler.io/):
 
-    $ bundle check || thief; bundle install
+    $ thief; bundle check || bundle install
 
 Execute somewhere where Gemfile is present
 
