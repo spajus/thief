@@ -8,8 +8,8 @@ module Thief
       gemfile = resolve_gemfile
       gems = parse_gemfile(gemfile)
       if gems.size > 0
-        puts "Getting #{gems.size} missing gems"
-        Parallel.map(gems, in_processes: cpu_count, progress: 'Getting missing gems') do |gem|
+        puts "Getting #{gems.size} missing gems:\n#{gems.map { |g| "#{g[:gem]} (#{g[:version]})" }.join("\n")}"
+        Parallel.map(gems, in_processes: [cpu_count, gems.size].min, progress: 'Getting missing gems') do |gem|
           install_gem(gem)
         end
       else
@@ -20,8 +20,6 @@ module Thief
     private
 
     def install_gem(gem)
-      cmd = ''
-      cmd << 'yes | ' if system 'yes | echo 1'
       cmd = "gem install #{gem[:gem]}"
       cmd << " -v '#{gem[:version]}'" if gem[:version]
       cmd << ' --no-verbose -q --no-rdoc --no-ri --conservative --minimal-deps'
