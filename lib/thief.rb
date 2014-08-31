@@ -20,6 +20,8 @@ module Thief
     private
 
     def install_gem(gem)
+      cmd = ''
+      cmd << 'yes | ' if system 'yes | echo 1'
       cmd = "gem install #{gem[:gem]}"
       cmd << " -v '#{gem[:version]}'" if gem[:version]
       cmd << ' --no-verbose -q --no-rdoc --no-ri --conservative --minimal-deps'
